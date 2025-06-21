@@ -11,3 +11,4 @@ test-*.txt
 /test-results-*.txt
 /test-results-*.json
 /test-results-*.xml
+*.md
