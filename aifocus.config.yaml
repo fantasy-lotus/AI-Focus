@@ -1,13 +1,12 @@
-# AIFocus 配置文件
+# AIFocus 配置文件 (用于 aifocus 包自身开发)
 
 project:
-  name: "AIFocus测试项目"
+  name: "AIFocus"
   type: "typescript"
 
 # 分析路径
 analyzePaths:
-  - "**/*.{ts,js,tsx,jsx}"
-  - "test-*.ts"
+  - "src/**/*.ts"
 
 # 排除路径
 excludePaths:
@@ -55,7 +54,6 @@ ai:
   enabled: true
   provider: "gemini"
   temperature: 0.2
-  tokenLimit: 4096
   gemini:
-    apikey: "GEMINI_API_KEY"
-    model: "gemini-2.0-flash"
+    model: "gemini-1.5-flash"
+    # apiKey: "your-api-key-here" # 如需直接配置，请取消注释并替换
