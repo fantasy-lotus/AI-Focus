@@ -1,0 +1,61 @@
+# AIFocus 配置文件
+
+project:
+  name: "AIFocus测试项目"
+  type: "typescript"
+
+# 分析路径
+analyzePaths:
+  - "**/*.{ts,js,tsx,jsx}"
+  - "test-*.ts"
+
+# 排除路径
+excludePaths:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+
+# 输出配置
+output:
+  reports:
+    directory: "./reports"
+    focusFile: "focus-report.md"
+    reviewFile: "review-report.md"
+  docs:
+    directory: "docs"
+
+# 规则配置
+rules:
+  "function.complexityLimit":
+    enabled: true
+    severity: "warning"
+    threshold: 10
+
+  "function.lengthLimit":
+    enabled: true
+    severity: "warning"
+    threshold: 30
+
+  "class.methodCountLimit":
+    enabled: true
+    severity: "warning"
+    threshold: 10
+
+  "class.cohesion":
+    enabled: true
+    severity: "info"
+    threshold: 0.5
+
+  "module.circularDependency":
+    enabled: true
+    severity: "warning"
+
+# AI配置
+ai:
+  enabled: true
+  provider: "gemini"
+  temperature: 0.2
+  tokenLimit: 4096
+  gemini:
+    apikey: "GEMINI_API_KEY"
+    model: "gemini-2.0-flash"

@@ -1,0 +1,13 @@
+package-lock.json
+test-*.txt
+
+/node_modules
+/dist
+/build
+/coverage
+/logs
+/tmp
+/test-results
+/test-results-*.txt
+/test-results-*.json
+/test-results-*.xml

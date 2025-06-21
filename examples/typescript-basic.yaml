@@ -1,0 +1,45 @@
+# AIFocus 基础 TypeScript 项目配置示例
+
+# 项目配置
+project:
+  name: "typescript-demo"
+  type: "typescript"
+  exclude:
+    - "node_modules"
+    - "dist"
+    - "coverage"
+    - ".git"
+
+# 分析配置
+analysis:
+  monitorInterval: 30 # 监控间隔（秒）
+
+# AI 服务配置
+ai:
+  provider: "gemini"
+  model: "gemini-1.5-flash"
+  apiKeyEnv: "GEMINI_API_KEY"
+
+# 代码质量规则
+rules:
+  - name: "函数圈复杂度过高"
+    metric: "cyclomaticComplexity"
+    threshold: 10
+    severity: "warning"
+
+  - name: "函数过长"
+    metric: "functionLength"
+    threshold: 80
+    severity: "warning"
+
+  - name: "参数过多"
+    metric: "parameterCount"
+    threshold: 5
+    severity: "info"
+
+# 输出配置
+output:
+  reports:
+    directory: "./.aifocus"
+    focusFile: "Focus.md"
+    reviewFile: "CodeReview.md"
