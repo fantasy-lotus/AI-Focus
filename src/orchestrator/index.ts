@@ -82,12 +82,16 @@ export class Orchestrator {
       this.aiService = new AIService(aiProvider);
     }
 
-    this.outputGenerator = new MarkdownGenerator(
-      this.config.output.reports.directory
-    );
-    this.docsOutputGenerator = new MarkdownGenerator(
-      this.config.output.docs.directory
-    );
+    const reportsDir = path.isAbsolute(this.config.output.reports.directory)
+      ? this.config.output.reports.directory
+      : path.join(this.rootPath, this.config.output.reports.directory);
+
+    const docsDir = path.isAbsolute(this.config.output.docs.directory)
+      ? this.config.output.docs.directory
+      : path.join(this.rootPath, this.config.output.docs.directory);
+
+    this.outputGenerator = new MarkdownGenerator(reportsDir);
+    this.docsOutputGenerator = new MarkdownGenerator(docsDir);
   }
 
   public async run(
@@ -183,6 +187,12 @@ export class Orchestrator {
       }
 
       await this.docsOutputGenerator.generate(docTree);
+
+      // 若 docsReportPath 是相对路径，转换成绝对路径以便外部使用
+      if (!path.isAbsolute(docsReportPath)) {
+        docsReportPath = path.join(this.rootPath, docsReportPath);
+      }
+
       this.logger.info(`镜像文档已生成在: ${path.dirname(docsReportPath)}`);
     } catch (error) {
       this.logger.error("解析AI返回的文档结构或生成结构化文档失败:", error);
@@ -201,6 +211,44 @@ export class Orchestrator {
       docsReportPath: docsReportPath,
       analysisResult: analysisResult,
     };
+  }
+
+  // 新增: 增量分析入口
+  public async runIncremental(
+    changedFiles: Set<string>,
+    prevResult: AnalysisResult
+  ): Promise<AnalysisResult> {
+    this.logger.info("📈 AIFocus 增量分析启动...");
+
+    // 1. 计算受影响文件
+    const impacted = new Set<string>(changedFiles);
+
+    if (prevResult.dependencyGraph) {
+      for (const filePath of changedFiles) {
+        const node = prevResult.dependencyGraph.nodes.get(filePath);
+        if (node) {
+          node.imports.forEach((p) => impacted.add(p));
+          node.importedBy.forEach((p) => impacted.add(p));
+        }
+      }
+    }
+
+    this.logger.info(
+      `增量分析: 共 ${impacted.size} 个文件需要重新分析 (变更 + 相邻依赖)`
+    );
+
+    try {
+      const analysisResult = await this.analyzer.analyzeFiles(
+        Array.from(impacted),
+        prevResult
+      );
+      this.logger.info("增量分析完成。");
+      return analysisResult;
+    } catch (error) {
+      this.logger.error("增量分析失败，将回退至全量分析", error as Error);
+      // 回退到全量分析
+      return this.analyzer.analyzeProject(this.rootPath);
+    }
   }
 
   private generateFocusReport(analysisResult: AnalysisResult): string {

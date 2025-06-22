@@ -162,6 +162,17 @@ export interface IAnalyzer {
    * @returns 依赖图
    */
   generateDependencyGraph(results: FileAnalysisResult[]): DependencyGraph;
+
+  /**
+   * 增量分析多个文件，并在上一次结果基础上合并
+   * @param filePaths 文件路径数组
+   * @param prevResult 上一次分析结果
+   * @returns 分析结果
+   */
+  analyzeFiles(
+    filePaths: string[],
+    prevResult: AnalysisResult
+  ): Promise<AnalysisResult>;
 }
 
 /**

@@ -59,16 +59,28 @@ export function watchCommand(program: Command): void {
             chalk.yellow(`📝 检测到文件变更: ${changedFiles.size} 个文件`)
           );
 
-          // 执行全量分析 (性能优化留待下一阶段)
-          const orchestrationOutput = await orchestrator.run(
-            !config.ai.enabled
-          );
+          let currentResult: AnalysisResult;
 
-          // 提取 AnalysisResult
-          const currentResult: AnalysisResult =
-            "analysisResult" in orchestrationOutput
-              ? orchestrationOutput.analysisResult
-              : (orchestrationOutput as AnalysisResult);
+          // 判断是否启用增量
+          const useIncremental =
+            config.incremental?.enabled && prevResult !== null;
+
+          if (useIncremental) {
+            currentResult = await orchestrator.runIncremental(
+              new Set(changedFiles),
+              prevResult as AnalysisResult
+            );
+          } else {
+            const orchestrationOutput = await orchestrator.run(
+              !config.ai.enabled
+            );
+
+            // 提取 AnalysisResult
+            currentResult =
+              "analysisResult" in orchestrationOutput
+                ? orchestrationOutput.analysisResult
+                : (orchestrationOutput as AnalysisResult);
+          }
 
           // 生成 Markdown diff 区块
           const diffSection = generateDiffSection(

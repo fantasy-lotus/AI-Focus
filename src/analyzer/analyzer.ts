@@ -368,6 +368,65 @@ export class Analyzer implements IAnalyzer {
       DEFAULT_CONFIG.rules[ruleId]?.severity ??
       "info") as Severity;
   }
+
+  // 新增: 增量分析指定文件集合，并基于上一轮结果合并
+  async analyzeFiles(
+    filePaths: string[],
+    prevResult: AnalysisResult
+  ): Promise<AnalysisResult> {
+    const impactedSet = new Set<string>(filePaths.map((p) => path.resolve(p)));
+
+    // 1. 过滤出未受影响的旧结果
+    const retainedResults: FileAnalysisResult[] = prevResult.files.filter(
+      (res) => !impactedSet.has(path.resolve(res.filePath))
+    );
+
+    // 2. 重新分析受影响文件（若仍存在）
+    const reAnalyzed: FileAnalysisResult[] = [];
+    for (const filePath of impactedSet) {
+      if (!fs.existsSync(filePath)) {
+        // 文件已删除，跳过分析
+        continue;
+      }
+      try {
+        const result = await this.analyzeFile(filePath);
+        reAnalyzed.push(result);
+      } catch (error) {
+        console.error(`增量分析文件 ${filePath} 失败:`, error);
+      }
+    }
+
+    const mergedResults = [...retainedResults, ...reAnalyzed];
+
+    // 3. 重新生成依赖图与相关指标
+    const dependencyGraph = this.generateDependencyGraph(mergedResults);
+    const stabilityMetrics = calculateStability(dependencyGraph);
+    const riskScores = calculateAllRiskScores(
+      dependencyGraph,
+      stabilityMetrics
+    );
+
+    // 4. 汇总发现
+    const allFindings = mergedResults.reduce(
+      (acc, r) => [...acc, ...r.findings],
+      [] as Finding[]
+    );
+    if (this.ruleEngine) {
+      const projectFindings = this.ruleEngine.evaluateProject(
+        mergedResults,
+        dependencyGraph
+      );
+      allFindings.push(...projectFindings);
+    }
+
+    return {
+      files: mergedResults,
+      findings: allFindings,
+      dependencyGraph,
+      stabilityMetrics,
+      riskScores,
+    };
+  }
 }
 
 /**
@@ -396,4 +455,13 @@ export async function analyzeProject(
 ): Promise<AnalysisResult> {
   const analyzer = new Analyzer();
   return analyzer.analyzeProject(rootPath, exclude);
+}
+
+// 新增: 增量分析便捷函数
+export async function analyzeFiles(
+  filePaths: string[],
+  prevResult: AnalysisResult
+): Promise<AnalysisResult> {
+  const analyzer = new Analyzer();
+  return analyzer.analyzeFiles(filePaths, prevResult);
 }
