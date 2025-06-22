@@ -11,7 +11,7 @@
     "start": "node dist/cli/index.js",
     "dev": "ts-node src/cli/index.ts",
     "watch": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/cli/index.ts",
-    "test": "vitest run tests/integration/orchestrator.test.ts",
+    "test": "vitest run",
     "test:watch": "vitest tests/integration/orchestrator.test.ts",
     "test:analyzer": "ts-node tests/analyzer.test.ts",
     "test:config": "ts-node tests/config.test.ts",

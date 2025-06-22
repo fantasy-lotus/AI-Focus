@@ -76,6 +76,12 @@ aifocus analyze
 
 # 分析特定文件
 aifocus analyze --file src/app.ts
+
+# 静默模式（仅错误输出）
+aifocus analyze --quiet
+
+# 调试模式（输出调试日志）
+aifocus analyze --debug
 ```
 
 ## 配置文件
@@ -109,6 +115,14 @@ output:
     reviewFile: "review.md"
   docs:
     directory: "./aifocus-docs"
+
+# 日志级别
+logLevel: info # silent | info | debug
+
+# 增量分析 (watch 模式)
+incremental:
+  enabled: true
+  debounceSeconds: 5
 
 # 配置 AI 服务
 ai:

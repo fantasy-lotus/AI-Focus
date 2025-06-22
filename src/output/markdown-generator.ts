@@ -43,12 +43,40 @@ export class MarkdownGenerator {
     const filePath = path.join(this.outputDir, fileName);
     try {
       await fs.mkdir(this.outputDir, { recursive: true });
-      await fs.writeFile(filePath, content, "utf-8");
+      // 处理更新时间行
+      const finalContent = this.withUpdatedTimestamp(content);
+      await fs.writeFile(filePath, finalContent, "utf-8");
       return filePath;
     } catch (error) {
       console.error(`写入Markdown文件失败: ${filePath}`, error);
       throw error;
     }
+  }
+
+  /**
+   * 为 Markdown 内容插入或更新第一行的 **最后更新** 时间戳
+   */
+  private withUpdatedTimestamp(original: string): string {
+    const timestampLine = `**最后更新**: ${this.getFormattedNow()}`;
+    const lines = original.split("\n");
+    if (lines[0]?.startsWith("**最后更新**:")) {
+      lines[0] = timestampLine;
+    } else {
+      lines.unshift(timestampLine);
+    }
+    return lines.join("\n");
+  }
+
+  /** 获取格式化当前时间 */
+  private getFormattedNow(): string {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const MM = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const HH = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
   }
 
   /**
@@ -95,7 +123,8 @@ export class MarkdownGenerator {
         const baseName = path.basename(node.name, path.extname(node.name));
         const mdFileName = `${baseName}.md`;
         const filePath = path.join(currentPath, mdFileName);
-        await fs.writeFile(filePath, node.content, "utf-8");
+        const finalContent = this.withUpdatedTimestamp(node.content);
+        await fs.writeFile(filePath, finalContent, "utf-8");
       }
     }
   }

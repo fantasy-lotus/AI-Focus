@@ -59,7 +59,19 @@ export async function loadConfig(configPath: string): Promise<AIFocusConfig> {
     }
 
     // 合并默认配置
-    return deepMerge(getDefaultConfig(), config);
+    const merged = deepMerge(getDefaultConfig(), config);
+
+    // 向后兼容处理: 如果检测到旧的 debugMode=true, 则提升到 logLevel="debug"
+    if ((config as any).debugMode === true) {
+      merged.logLevel = "debug";
+    }
+
+    // 如果未显式指定 logLevel，则默认 "info"
+    if (!merged.logLevel) {
+      merged.logLevel = "info";
+    }
+
+    return merged;
   } catch (error) {
     console.error(`加载配置文件失败: ${error}`);
     return getDefaultConfig();

@@ -17,6 +17,7 @@ import { MarkdownGenerator, DocNode } from "../output/markdown-generator";
 import { OrchestrationResult } from "./types";
 import path from "path";
 import micromatch from "micromatch";
+import { createLogger, Logger } from "../utils/logger";
 
 /**
  * AI 服务封装
@@ -58,16 +59,20 @@ export class Orchestrator {
   private docsOutputGenerator: MarkdownGenerator;
   private config: AIFocusConfig;
   private rootPath: string;
+  private logger: Logger;
 
   constructor(config: AIFocusConfig, rootPath: string) {
     this.config = config;
     this.rootPath = rootPath;
+    // 根据配置创建 logger
+    this.logger = createLogger(this.config.logLevel ?? "info");
     const analyzerConfig: Partial<AnalyzerConfig> = {
       includePaths: config.analyzePaths,
       excludePaths: config.excludePaths,
       rules: config.rules,
       rulesConfig: config.rules,
-      debugMode: config.debugMode,
+      // 向下兼容 Analyzer 中的 debugMode 逻辑
+      debugMode: (config.logLevel ?? "info") === "debug",
     };
     this.analyzer = new Analyzer(analyzerConfig);
 
@@ -88,23 +93,25 @@ export class Orchestrator {
   public async run(
     skipAI: boolean = false
   ): Promise<OrchestrationResult | AnalysisResult> {
-    console.log("🚀 AIFocus Orchestrator 启动...");
-    console.log("开始执行AIFocus协调流程...");
+    this.logger.info("🚀 AIFocus Orchestrator 启动...");
+    this.logger.info("开始执行AIFocus协调流程...");
 
     // 1. 运行分析器
-    console.log("步骤 1/3: 正在分析项目...");
+    this.logger.info("步骤 1/3: 正在分析项目...");
     const analysisResult = await this.analyzer.analyzeProject(this.rootPath);
-    console.log(`分析完成，共分析 ${analysisResult.files.length} 个文件。`);
+    this.logger.info(
+      `分析完成，共分析 ${analysisResult.files.length} 个文件。`
+    );
 
     // 如果跳过AI或AI未启用，则只生成Focus报告并返回
     if (skipAI || !this.config.ai.enabled) {
-      console.log("步骤 2/3: 跳过AI分析。");
-      console.log("步骤 3/3: 正在生成静态分析报告...");
+      this.logger.info("步骤 2/3: 跳过AI分析。");
+      this.logger.info("步骤 3/3: 正在生成静态分析报告...");
       const focusReportPath = await this.outputGenerator.generateFile(
         this.generateFocusReport(analysisResult),
         this.config.output.reports.focusFile
       );
-      console.log(`静态分析报告已生成: ${focusReportPath}`);
+      this.logger.info(`静态分析报告已生成: ${focusReportPath}`);
       return analysisResult;
     }
 
@@ -116,7 +123,7 @@ export class Orchestrator {
     );
 
     // 2.2 调用 AI 生成
-    console.log("步骤 2/3: 正在调用 AI 生成代码审查和文档...");
+    this.logger.info("步骤 2/3: 正在调用 AI 生成代码审查和文档...");
     const [reviewResponse, docsResponse] = await Promise.all([
       this.aiService.generateCodeReview(analysisResult),
       // 传递新的 payload
@@ -125,10 +132,10 @@ export class Orchestrator {
         docGenerationPayload
       ),
     ]);
-    console.log("AI 生成成功。");
+    this.logger.info("AI 生成成功。");
 
     // 3. 生成报告
-    console.log("步骤 3/3: 正在生成报告...");
+    this.logger.info("步骤 3/3: 正在生成报告...");
 
     // 生成带时间戳的文件名以区分不同时间的review
     const now = new Date();
@@ -176,18 +183,18 @@ export class Orchestrator {
       }
 
       await this.docsOutputGenerator.generate(docTree);
-      console.log(`镜像文档已生成在: ${path.dirname(docsReportPath)}`);
+      this.logger.info(`镜像文档已生成在: ${path.dirname(docsReportPath)}`);
     } catch (error) {
-      console.error("解析AI返回的文档结构或生成结构化文档失败:", error);
-      console.error("AI返回的原始文本:", docsResponse.text);
+      this.logger.error("解析AI返回的文档结构或生成结构化文档失败:", error);
+      this.logger.error("AI返回的原始文本:", docsResponse.text);
     }
 
-    console.log(`报告已生成:`);
-    console.log(`  - 代码审查报告: ${reviewReportPath}`);
+    this.logger.info(`报告已生成:`);
+    this.logger.info(`  - 代码审查报告: ${reviewReportPath}`);
     if (docsReportPath) {
-      console.log(`  - 文档报告: ${docsReportPath}`);
+      this.logger.info(`  - 文档报告: ${docsReportPath}`);
     }
-    console.log("AIFocus协调流程执行完毕。");
+    this.logger.info("AIFocus协调流程执行完毕。");
 
     return {
       reviewReportPath: reviewReportPath,

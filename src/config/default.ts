@@ -67,6 +67,6 @@ export function getDefaultConfig(): AIFocusConfig {
       enabled: true,
       debounceSeconds: 5,
     },
-    debugMode: false,
+    logLevel: "info",
   };
 }

@@ -129,5 +129,11 @@ export interface AIFocusConfig {
   /** AI配置 */
   ai: AIConfig;
   /** 新增: 调试模式 */
-  debugMode?: boolean;
+  /**
+   * 日志级别
+   * - "silent": 不输出
+   * - "info": 信息输出（默认）
+   * - "debug": 详尽调试信息
+   */
+  logLevel?: "silent" | "info" | "debug";
 }
