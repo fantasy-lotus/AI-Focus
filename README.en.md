@@ -76,6 +76,12 @@ aifocus analyze
 
 # Analyze a specific file
 aifocus analyze --file src/app.ts
+
+# Silent mode (errors only)
+aifocus analyze --quiet
+
+# Debug mode (verbose logs)
+aifocus analyze --debug
 ```
 
 ## Configuration File
@@ -132,6 +138,14 @@ rules:
   "module.circularDependency":
     enabled: true
     severity: "error"
+
+# Log level
+logLevel: info # silent | info | debug
+
+# Incremental analysis (watch mode)
+incremental:
+  enabled: true
+  debounceSeconds: 5
 ```
 
 > For all advanced options, please refer to the documentation in the `agentic-docs` directory.
