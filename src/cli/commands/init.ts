@@ -8,6 +8,8 @@ import { Command } from "commander";
 import * as fs from "fs";
 import * as path from "path";
 import chalk from "chalk";
+import * as yaml from "js-yaml";
+import { getDefaultConfig } from "../../config/default";
 
 /**
  * 注册初始化命令
@@ -29,67 +31,16 @@ export function initCommand(program: Command): void {
           console.log(chalk.yellow("⚠️ 配置文件已存在，将被覆盖"));
         }
 
-        // 创建默认配置
-        const defaultConfig = `# AIFocus 配置文件
+        // 获取默认配置对象并转换为YAML字符串
+        const defaultConfigObject = getDefaultConfig();
+        const defaultConfigYaml = yaml.dump(defaultConfigObject);
 
-project:
-  name: "项目名称"
-  type: "typescript"
-
-# 分析路径
-analyzePaths:
-  - "**/*.{ts,js,tsx,jsx}"
-
-# 排除路径
-excludePaths:
-  - "**/node_modules/**"
-  - "**/dist/**"
-  - "**/build/**"
-
-# 输出配置
-output:
-  reports:
-    directory: "./.aifocus"
-    focusFile: "Focus.md"
-    reviewFile: "CodeReview.md"
-
-# 规则配置
-rules:
-  "function.complexityLimit":
-    enabled: true
-    severity: "warning"
-    threshold: 10
-  
-  "function.lengthLimit":
-    enabled: true
-    severity: "warning"
-    threshold: 30
-  
-  "class.methodCountLimit":
-    enabled: true
-    severity: "warning"
-    threshold: 10
-  
-  "class.cohesion":
-    enabled: true
-    severity: "info"
-    threshold: 0.5
-  
-  "module.circularDependency":
-    enabled: true
-    severity: "warning"
-
-# AI配置
-ai:
-  enabled: true
-  provider: "gemini"
-  model: "gemini-pro"
-  temperature: 0.2
-  tokenLimit: 4096
-`;
+        const fileHeader = `# AIFocus 默认配置文件
+# 详细配置文档请参阅: https://github.com/your-repo/aifocus/docs/configuration.md
+\n`;
 
         // 写入配置文件
-        fs.writeFileSync(configPath, defaultConfig, "utf-8");
+        fs.writeFileSync(configPath, fileHeader + defaultConfigYaml, "utf-8");
 
         console.log(chalk.green("✅ AIFocus初始化成功！"));
         console.log(chalk.gray(`配置文件已创建: ${configPath}`));

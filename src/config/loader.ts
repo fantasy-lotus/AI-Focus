@@ -9,6 +9,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "js-yaml";
 import { AIFocusConfig } from "./types";
+import { getDefaultConfig } from "./default";
 
 /**
  * Deep merges two objects.
@@ -63,70 +64,4 @@ export async function loadConfig(configPath: string): Promise<AIFocusConfig> {
     console.error(`加载配置文件失败: ${error}`);
     return getDefaultConfig();
   }
-}
-
-/**
- * 获取默认配置
- * @returns 默认配置对象
- */
-export function getDefaultConfig(): AIFocusConfig {
-  return {
-    project: {
-      name: "unknown",
-      type: "typescript",
-    },
-    analyzePaths: ["**/*.{ts,js,tsx,jsx}"],
-    excludePaths: ["**/node_modules/**", "**/dist/**", "**/build/**"],
-    output: {
-      reports: {
-        directory: "./aifocus-reports",
-        focusFile: "focus.md",
-        reviewFile: "review.md",
-      },
-      docs: {
-        directory: "./aifocus-docs",
-      },
-    },
-    rules: {
-      "function.complexityLimit": {
-        enabled: true,
-        severity: "warning",
-        threshold: 10,
-      },
-      "function.lengthLimit": {
-        enabled: true,
-        severity: "warning",
-        threshold: 30,
-      },
-      "class.methodCountLimit": {
-        enabled: true,
-        severity: "warning",
-        threshold: 10,
-      },
-      "class.cohesion": {
-        enabled: true,
-        severity: "info",
-        threshold: 0.5,
-      },
-      "module.circularDependency": {
-        enabled: true,
-        severity: "warning",
-      },
-    },
-    ai: {
-      enabled: true,
-      provider: "gemini",
-      gemini: {
-        model: "gemini-1.5-flash",
-      },
-      temperature: 0.7,
-    },
-    docScoping: {
-      excludeFromDocs: [],
-      moduleLevel: {
-        threshold: 4,
-      },
-    },
-    debugMode: false,
-  };
 }
