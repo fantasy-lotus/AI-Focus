@@ -97,6 +97,16 @@ export interface DocScopingConfig {
 }
 
 /**
+ * 增量分析配置
+ */
+export interface IncrementalConfig {
+  /** 是否启用增量分析 */
+  enabled: boolean;
+  /** 去抖间隔（秒） */
+  debounceSeconds: number;
+}
+
+/**
  * AIFocus完整配置
  */
 export interface AIFocusConfig {
@@ -114,6 +124,8 @@ export interface AIFocusConfig {
   };
   /** 新增: 文档作用域配置 */
   docScoping?: DocScopingConfig;
+  /** 新增: 增量分析配置 */
+  incremental?: IncrementalConfig;
   /** AI配置 */
   ai: AIConfig;
   /** 新增: 调试模式 */

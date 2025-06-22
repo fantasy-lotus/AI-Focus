@@ -57,3 +57,5 @@ ai:
   gemini:
     model: "gemini-1.5-flash"
     # apiKey: "your-api-key-here" # 如需直接配置，请取消注释并替换
+
+debugMode: false

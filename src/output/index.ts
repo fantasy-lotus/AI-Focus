@@ -7,3 +7,4 @@
 
 // 导出Markdown生成器
 export * from "./markdown-generator";
+export * from "./markdown-diff";

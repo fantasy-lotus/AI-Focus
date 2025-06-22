@@ -99,4 +99,47 @@ export class MarkdownGenerator {
       }
     }
   }
+
+  /**
+   * 在指定 Markdown 文件中插入或更新一个带锚点的区块
+   * @param filePath 目标 Markdown 文件路径
+   * @param sectionId 区块唯一标识符（将用作 HTML 注释锚点）
+   * @param content 要插入的 Markdown 内容（不包含锚点注释）
+   */
+  public async appendOrUpdateSection(
+    filePath: string,
+    sectionId: string,
+    content: string
+  ): Promise<void> {
+    const beginTag = `<!-- BEGIN_${sectionId} -->`;
+    const endTag = `<!-- END_${sectionId} -->`;
+
+    let fileContent = "";
+    try {
+      fileContent = await fs.readFile(filePath, "utf-8");
+    } catch (err: any) {
+      if (err.code === "ENOENT") {
+        // 文件不存在，直接创建
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
+        const finalContent = `${beginTag}\n${content}\n${endTag}\n`;
+        await fs.writeFile(filePath, finalContent, "utf-8");
+        return;
+      }
+      throw err;
+    }
+
+    if (fileContent.includes(beginTag) && fileContent.includes(endTag)) {
+      // 更新已有区块
+      const regex = new RegExp(`${beginTag}[\s\S]*?${endTag}`, "gm");
+      fileContent = fileContent.replace(
+        regex,
+        `${beginTag}\n${content}\n${endTag}`
+      );
+    } else {
+      // 在顶部插入新的区块，保持文档历史在后
+      fileContent = `${beginTag}\n${content}\n${endTag}\n\n${fileContent}`;
+    }
+
+    await fs.writeFile(filePath, fileContent, "utf-8");
+  }
 }

@@ -63,6 +63,10 @@ export function getDefaultConfig(): AIFocusConfig {
         threshold: 4,
       },
     },
+    incremental: {
+      enabled: true,
+      debounceSeconds: 5,
+    },
     debugMode: false,
   };
 }
