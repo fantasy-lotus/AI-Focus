@@ -68,22 +68,24 @@ export function analyzeCommand(program: Command): void {
         const configPath = path.resolve(options.path, options.config);
         const config = await loadConfig(configPath);
 
-        // 如果配置中启用了AI，则使用Orchestrator
+        // 创建Orchestrator实例
+        const orchestrator = new Orchestrator(config, options.path);
+
+        // 根据AI配置决定执行路径
         if (config.ai?.enabled) {
-          // 创建并运行Orchestrator
-          const orchestrator = new Orchestrator(config, options.path);
+          console.log(
+            chalk.cyan("正在执行完整分析 (包含AI代码审查和文档生成)...")
+          );
           const result = await orchestrator.run();
-          printHealthSummary(result.analysisResult);
+          if ("analysisResult" in result) {
+            printHealthSummary(result.analysisResult);
+          }
         } else {
-          // 在此可以保留或实现旧的、不带AI的分析逻辑
-          console.log(
-            chalk.yellow("AI 功能未在配置中启用。跳过AI增强的分析。")
-          );
-          console.log(
-            chalk.gray(
-              "如需启用，请在 aifocus.config.yaml 中设置 'ai.enabled = true'"
-            )
-          );
+          console.log(chalk.yellow("AI 功能未在配置中启用。"));
+          console.log(chalk.cyan("正在执行静态分析并生成Focus报告..."));
+          // 仅运行分析和报告生成，跳过AI部分
+          const result = await orchestrator.run(true); // 传入一个标志跳过AI
+          printHealthSummary(result as AnalysisResult);
         }
 
         console.log(chalk.green("✅ 操作完成！"));

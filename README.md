@@ -159,8 +159,10 @@ aifocus watch [--path <监控路径>] [--verbose]
 执行一次性分析:
 
 ```bash
-aifocus analyze [--file <文件路径>] [--skip-ai]
+aifocus analyze [--file <文件路径>]
 ```
+
+> 要在不调用 AI 的情况下运行，请在`aifocus.config.yaml`中设置 `ai: { enabled: false }`。
 
 ## Roadmap
 

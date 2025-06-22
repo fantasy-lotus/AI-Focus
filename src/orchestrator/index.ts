@@ -53,7 +53,7 @@ class AIService {
  */
 export class Orchestrator {
   private analyzer: Analyzer;
-  private aiService: AIService;
+  private aiService!: AIService;
   private outputGenerator: MarkdownGenerator;
   private docsOutputGenerator: MarkdownGenerator;
   private config: AIFocusConfig;
@@ -70,8 +70,12 @@ export class Orchestrator {
       debugMode: config.debugMode,
     };
     this.analyzer = new Analyzer(analyzerConfig);
-    const aiProvider = AiProviderFactory.create(config);
-    this.aiService = new AIService(aiProvider);
+
+    // 只有在AI启用时才创建AI服务
+    if (this.config.ai.enabled) {
+      const aiProvider = AiProviderFactory.create(config);
+      this.aiService = new AIService(aiProvider);
+    }
 
     this.outputGenerator = new MarkdownGenerator(
       this.config.output.reports.directory
@@ -81,7 +85,9 @@ export class Orchestrator {
     );
   }
 
-  public async run(): Promise<OrchestrationResult> {
+  public async run(
+    skipAI: boolean = false
+  ): Promise<OrchestrationResult | AnalysisResult> {
     console.log("🚀 AIFocus Orchestrator 启动...");
     console.log("开始执行AIFocus协调流程...");
 
@@ -89,6 +95,20 @@ export class Orchestrator {
     console.log("步骤 1/3: 正在分析项目...");
     const analysisResult = await this.analyzer.analyzeProject(this.rootPath);
     console.log(`分析完成，共分析 ${analysisResult.files.length} 个文件。`);
+
+    // 如果跳过AI或AI未启用，则只生成Focus报告并返回
+    if (skipAI || !this.config.ai.enabled) {
+      console.log("步骤 2/3: 跳过AI分析。");
+      console.log("步骤 3/3: 正在生成静态分析报告...");
+      const focusReportPath = await this.outputGenerator.generateFile(
+        this.generateFocusReport(analysisResult),
+        this.config.output.reports.focusFile
+      );
+      console.log(`静态分析报告已生成: ${focusReportPath}`);
+      return analysisResult;
+    }
+
+    // --- AI 完整流程 ---
 
     // 2.1 应用文档作用域策略
     const docGenerationPayload = this.prepareDocGenerationPayload(
@@ -174,6 +194,40 @@ export class Orchestrator {
       docsReportPath: docsReportPath,
       analysisResult: analysisResult,
     };
+  }
+
+  private generateFocusReport(analysisResult: AnalysisResult): string {
+    let report = `# AIFocus - 静态分析报告\n\n`;
+    report += `分析时间: ${new Date().toLocaleString()}\n`;
+    report += `总文件数: ${analysisResult.files.length}\n`;
+    report += `发现问题总数: ${analysisResult.findings.length}\n\n`;
+
+    report += `## 按文件分类的问题列表\n\n`;
+
+    if (analysisResult.files.length === 0) {
+      report += "未分析任何文件。\n\n";
+    } else {
+      analysisResult.files.forEach((fileResult) => {
+        if (fileResult.findings.length > 0) {
+          report += `### 📄 \`${fileResult.filePath}\` (${fileResult.findings.length} 个问题)\n\n`;
+          fileResult.findings.forEach((finding) => {
+            report += `- **[${finding.severity.toUpperCase()}]**: ${
+              finding.message
+            }\n`;
+            if (finding.location) {
+              report += `  - **位置**: 行 ${finding.location.startLine}\n`;
+            }
+            report += "\n";
+          });
+        }
+      });
+    }
+
+    if (analysisResult.findings.length === 0) {
+      report += "✅ 未发现任何问题。\n";
+    }
+
+    return report;
   }
 
   private prepareDocGenerationPayload(results: FileAnalysisResult[]): {

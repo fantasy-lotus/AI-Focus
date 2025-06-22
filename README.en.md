@@ -159,8 +159,10 @@ aifocus watch [--path <monitoring path>] [--verbose]
 Run a one-time analysis:
 
 ```bash
-aifocus analyze [--file <file path>] [--skip-ai]
+aifocus analyze [--file <file path>]
 ```
+
+> To run without AI, set `ai: { enabled: false }` in your `aifocus.config.yaml`.
 
 ## Roadmap
 
