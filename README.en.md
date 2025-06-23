@@ -173,8 +173,11 @@ aifocus watch [--path <monitoring path>] [--verbose]
 Run a one-time analysis:
 
 ```bash
-aifocus analyze [--file <file path>]
+aifocus analyze [--file <file path>] [--quiet] [--debug]
 ```
+
+- `--quiet`: Silent mode, minimizes console output.
+- `--debug`: Debug mode, outputs detailed internal logs for troubleshooting.
 
 > To run without AI, set `ai: { enabled: false }` in your `aifocus.config.yaml`.
 

@@ -173,8 +173,11 @@ aifocus watch [--path <监控路径>] [--verbose]
 执行一次性分析:
 
 ```bash
-aifocus analyze [--file <文件路径>]
+aifocus analyze [--file <文件路径>] [--quiet] [--debug]
 ```
+
+- `--quiet`: 静默模式，最小化输出。
+- `--debug`: 调试模式，输出详细的内部日志。
 
 > 要在不调用 AI 的情况下运行，请在`aifocus.config.yaml`中设置 `ai: { enabled: false }`。
 

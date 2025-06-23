@@ -2,7 +2,7 @@
  * @file 配置加载器
  * @description 加载AIFocus配置文件
  * @module config/loader
- * @see {@link /agentic-docs/.module-docs/AIFocus/config/README.md} - 配置模块文档
+ * @see {@link /agentic-docs/.module-docs/AIFocus/config/loader.md} - 配置加载器文档
  */
 
 import * as fs from "fs";
@@ -61,8 +61,11 @@ export async function loadConfig(configPath: string): Promise<AIFocusConfig> {
     // 合并默认配置
     const merged = deepMerge(getDefaultConfig(), config);
 
-    // 向后兼容处理: 如果检测到旧的 debugMode=true, 则提升到 logLevel="debug"
-    if ((config as any).debugMode === true) {
+    // 处理日志级别：
+    // 1. 如果配置中直接指定了logLevel，这个值优先级最高
+    // 2. 如果没有logLevel但有debugMode=true，则logLevel="debug"
+    // 3. 否则默认为 "info"
+    if (!config.logLevel && (config as any).debugMode === true) {
       merged.logLevel = "debug";
     }
 

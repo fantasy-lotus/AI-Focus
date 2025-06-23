@@ -2,7 +2,7 @@
  * @file 配置类型定义
  * @description 定义AIFocus配置文件的类型
  * @module config/types
- * @see {@link /agentic-docs/.module-docs/AIFocus/config/README.md} - 配置模块文档
+ * @see {@link /agentic-docs/.module-docs/AIFocus/config/types.md} - 配置类型文档
  */
 
 /**
@@ -128,12 +128,12 @@ export interface AIFocusConfig {
   incremental?: IncrementalConfig;
   /** AI配置 */
   ai: AIConfig;
-  /** 新增: 调试模式 */
   /**
    * 日志级别
-   * - "silent": 不输出
-   * - "info": 信息输出（默认）
-   * - "debug": 详尽调试信息
+   * - "silent": 不输出任何日志
+   * - "info": 输出常规信息（默认）
+   * - "warn": 输出警告和错误
+   * - "debug": 输出详尽调试信息
    */
-  logLevel?: "silent" | "info" | "debug";
+  logLevel?: "silent" | "info" | "warn" | "debug";
 }

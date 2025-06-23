@@ -10,7 +10,6 @@ export default defineConfig({
       "**/node_modules/**",
       "**/dist/**",
       "tests/analyzer.test.ts",
-      "tests/config.test.ts",
       "tests/structure.test.ts",
       "tests/integration/orchestrator.test.ts",
     ],

@@ -243,6 +243,21 @@ export class Orchestrator {
         prevResult
       );
       this.logger.info("增量分析完成。");
+
+      // 更新 Focus 报告
+      this.logger.debug("正在更新全局 Focus 报告...");
+      const focusReportContent = this.generateFocusReport(analysisResult);
+
+      // 修复：使用正确的参数顺序调用generateFile方法
+      // 第一个参数是内容，第二个参数是文件名（不是完整路径）
+      await this.outputGenerator.generateFile(
+        focusReportContent,
+        this.config.output.reports.focusFile
+      );
+      this.logger.debug(
+        `已更新 Focus 报告: ${this.config.output.reports.focusFile}`
+      );
+
       return analysisResult;
     } catch (error) {
       this.logger.error("增量分析失败，将回退至全量分析", error as Error);
