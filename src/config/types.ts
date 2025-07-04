@@ -48,7 +48,10 @@ export interface OutputConfig {
     reviewFile: string;
   };
   docs: {
+    /** 文档输出目录 */
     directory: string;
+    /** 文档生成使用的提示语言，支持英文和中文 */
+    promptLanguage?: "en" | "cn";
   };
 }
 

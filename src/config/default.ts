@@ -26,6 +26,7 @@ export function getDefaultConfig(): AIFocusConfig {
       },
       docs: {
         directory: "./aifocus-docs",
+        promptLanguage: "en",
       },
     },
     rules: {

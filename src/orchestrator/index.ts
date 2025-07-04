@@ -24,7 +24,7 @@ import { createLogger, Logger } from "../utils/logger";
  * @description 简单封装 IAiProvider，提供特定任务的调用方法
  */
 class AIService {
-  constructor(private aiProvider: IAiProvider) {}
+  constructor(private aiProvider: IAiProvider, private config: AIFocusConfig) {}
 
   generateCodeReview(analysisResult: AnalysisResult) {
     return this.aiProvider.generate({
@@ -43,6 +43,7 @@ class AIService {
         fileAnalysisResults: analysisResult.files,
         analysisResult: analysisResult,
         projectStructure: projectStructure,
+        promptLanguage: this.config.output.docs.promptLanguage || "en",
       },
     });
   }
@@ -79,7 +80,7 @@ export class Orchestrator {
     // 只有在AI启用时才创建AI服务
     if (this.config.ai.enabled) {
       const aiProvider = AiProviderFactory.create(config);
-      this.aiService = new AIService(aiProvider);
+      this.aiService = new AIService(aiProvider, config);
     }
 
     const reportsDir = path.isAbsolute(this.config.output.reports.directory)

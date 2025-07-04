@@ -9,7 +9,7 @@ import { Command } from "commander";
 import path from "path";
 import chalk from "chalk";
 import { loadConfig } from "../../config";
-import { FileWatcherService, FileEventType, FileEvent } from "../../watcher";
+import { FileWatcher } from "../../watcher";
 import { Orchestrator } from "../../orchestrator";
 import { AnalysisResult } from "../../analyzer/types";
 import { MarkdownGenerator, generateDiffSection } from "../../output";
@@ -56,7 +56,7 @@ export function watchCommand(program: Command): void {
         );
 
         // 文件监视器
-        const watcher = new FileWatcherService(config);
+        const watcher = new FileWatcher(rootPath, config.excludePaths);
 
         // 运行状态
         const changedFiles: Set<string> = new Set();
@@ -138,29 +138,37 @@ export function watchCommand(program: Command): void {
           changedFiles.clear();
         };
 
-        // 文件事件处理器
-        const handleFileEvent = (event: FileEvent) => {
-          if (
-            event.type === FileEventType.CHANGED ||
-            event.type === FileEventType.ADDED
-          ) {
-            changedFiles.add(event.path);
+        // 文件变更回调处理函数
+        const handleAnalysis = async (result: AnalysisResult) => {
+          // 获取变更的文件路径
+          const filePath =
+            result.files.length > 0 ? result.files[0].filePath : null;
+
+          if (filePath) {
+            changedFiles.add(filePath);
+
+            // 使用防抖机制延迟触发分析
             if (analysisTimer) clearTimeout(analysisTimer);
             analysisTimer = setTimeout(triggerAnalysis, debounceMs);
-            logger.debug(
-              `文件 ${event.path} ${
-                event.type === FileEventType.CHANGED ? "已更改" : "已添加"
-              }`
-            );
+
+            logger.debug(`文件 ${filePath} 已变更`);
           }
         };
 
-        // 注册事件监听
-        watcher.on(FileEventType.CHANGED, handleFileEvent);
-        watcher.on(FileEventType.ADDED, handleFileEvent);
+        // 执行初始分析获取基准结果
+        logger.info("执行初始分析以获取基准结果...");
+        const initialOutput = await orchestrator.run(!config.ai.enabled);
 
-        // 启动监视
-        watcher.start(rootPath);
+        // 提取初始分析结果
+        const initialResult =
+          "analysisResult" in initialOutput
+            ? initialOutput.analysisResult
+            : (initialOutput as AnalysisResult);
+
+        prevResult = initialResult;
+
+        // 启动监视器并传入回调函数
+        await watcher.start(handleAnalysis, initialResult);
 
         logger.info(
           chalk.green(`✅ 监视器已启动，去抖间隔: ${debounceSeconds} 秒`)
