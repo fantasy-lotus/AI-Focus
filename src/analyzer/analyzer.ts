@@ -10,7 +10,7 @@ import * as path from "path";
 import { glob } from "glob";
 import { promisify } from "util";
 
-import TreeSitterParser from "./parser";
+import TreeSitterParser, { ParseResult } from "./parser";
 import { calculateCyclomaticComplexity } from "./metrics/cyclomatic-complexity";
 import { calculateCognitiveComplexity } from "./metrics/cognitive-complexity";
 import { calculateMaintainabilityIndex } from "./metrics/maintainability-index";
@@ -20,6 +20,7 @@ import { analyzeFunctions } from "./structure/function-analyzer";
 import { analyzeClasses } from "./structure/class-analyzer";
 import { analyzeModuleDependencies } from "./structure/module-analyzer";
 import DependencyGraphBuilder from "./structure/dependency-graph";
+import { UnifiedNode } from "./unified-node";
 
 import {
   IAnalyzer,
@@ -41,7 +42,7 @@ const readFileAsync = promisify(fs.readFile);
  * 默认分析器配置
  */
 const DEFAULT_CONFIG: AnalyzerConfig = {
-  includePaths: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
+  includePaths: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx", "**/*.py"],
   excludePaths: ["**/node_modules/**", "**/dist/**", "**/build/**"],
   rules: {
     "complexity.cyclomatic": {
@@ -58,6 +59,11 @@ const DEFAULT_CONFIG: AnalyzerConfig = {
       enabled: true,
       severity: "info",
       threshold: 65,
+    },
+    "syntax.error": {
+      enabled: true,
+      severity: "error",
+      threshold: 0.1, // 错误节点比例阈值
     },
   },
 };
@@ -105,11 +111,19 @@ export class Analyzer implements IAnalyzer {
 
       // 检测语言并解析
       const language = this.parser.detectLanguage(filePath);
-      const tree = this.parser.parse(content, language);
+      const parseResult = this.parser.parse(content, language, filePath);
+
+      // 从解析结果中提取原始树和统一节点（如果有）
+      const { tree, unified, hasErrors, errorRatio } = parseResult;
       const rootNode = tree.rootNode;
 
       if (this.config.debugMode) {
         console.log(`[Debug] 文件 ${filePath} 解析完成，语言: ${language}`);
+        if (unified) {
+          console.log(
+            `[Debug] 文件 ${filePath} 生成统一节点: ${unified.length}个`
+          );
+        }
       }
 
       // 初始化结果
@@ -121,15 +135,31 @@ export class Analyzer implements IAnalyzer {
         dependencies: [],
       };
 
+      // 检查语法错误
+      if (hasErrors && this.isRuleEnabled("syntax.error")) {
+        result.findings.push(
+          this.createSyntaxErrorFinding(filePath, errorRatio || 0)
+        );
+      }
+
       // 计算复杂度指标
       try {
-        result.metrics.cyclomaticComplexity =
-          calculateCyclomaticComplexity(tree);
-        result.metrics.cognitiveComplexity = calculateCognitiveComplexity(tree);
+        // 使用统一节点或原始AST计算复杂度
+        const useUnified = unified && unified.length > 0;
+
+        result.metrics.cyclomaticComplexity = calculateCyclomaticComplexity(
+          useUnified ? { unifiedNodes: unified } : tree
+        );
+
+        result.metrics.cognitiveComplexity = calculateCognitiveComplexity(
+          useUnified ? { unifiedNodes: unified } : tree
+        );
+
         result.metrics.maintainabilityIndex = calculateMaintainabilityIndex(
-          tree,
+          useUnified ? { unifiedNodes: unified } : tree,
           content
         );
+
         if (this.config.debugMode) {
           console.log(`[Debug] 文件 ${filePath} 复杂度指标计算完成。`);
         }
@@ -139,7 +169,8 @@ export class Analyzer implements IAnalyzer {
 
       // 分析函数和方法
       try {
-        const functions = analyzeFunctions(tree);
+        // 使用统一节点或原始AST分析函数
+        const functions = analyzeFunctions(unified || tree);
         if (this.config.debugMode) {
           console.log(
             `[Debug] 文件 ${filePath} 分析到 ${functions.length} 个函数。`
@@ -426,6 +457,50 @@ export class Analyzer implements IAnalyzer {
       stabilityMetrics,
       riskScores,
     };
+  }
+
+  /**
+   * 创建语法错误Finding
+   * @param filePath 文件路径
+   * @param errorRatio 错误节点比例
+   * @returns 语法错误Finding
+   */
+  private createSyntaxErrorFinding(
+    filePath: string,
+    errorRatio: number
+  ): Finding {
+    return {
+      id: "syntax.error",
+      type: "SYNTAX_ERROR" as FindingType,
+      message: `文件 '${path.basename(
+        filePath
+      )}' 包含语法错误，错误节点比例: ${(errorRatio * 100).toFixed(1)}%`,
+      severity: this.getSeverity("syntax.error"),
+      location: {
+        startLine: 1,
+        startColumn: 1,
+        endLine: 1,
+        endColumn: 1,
+      },
+      details: {
+        metricName: "syntaxErrorRatio",
+        value: errorRatio,
+        threshold: this.getThreshold("syntax.error"),
+        filePath,
+      },
+    };
+  }
+
+  /**
+   * 检查规则是否启用
+   * @param ruleId 规则ID
+   * @returns 是否启用
+   */
+  private isRuleEnabled(ruleId: string): boolean {
+    return (
+      this.config.rules[ruleId] !== undefined &&
+      this.config.rules[ruleId].enabled
+    );
   }
 }
 

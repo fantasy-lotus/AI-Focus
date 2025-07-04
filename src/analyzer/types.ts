@@ -24,7 +24,8 @@ export type FindingType =
   | "METRIC"
   | "RULE_VIOLATION"
   | "CODE_SMELL"
-  | "ARCHITECTURE";
+  | "ARCHITECTURE"
+  | "SYNTAX_ERROR";
 
 /**
  * 严重性级别

@@ -147,7 +147,72 @@ export class GeminiProvider implements IAiProvider {
           analysisResult: context.analysisResult,
           projectStructure: context.projectStructure,
         };
-        systemMessage = `
+
+        // 根据 promptLanguage 选择模板
+        const promptLanguage = context.promptLanguage || "en";
+
+        if (promptLanguage === "cn") {
+          // 中文模板
+          systemMessage = `
+您是一位专业的软件工程师，负责为软件项目创建全面、结构化的文档。
+您将收到一个包含项目分析结果的JSON对象，包括目录树。
+
+**您的任务：**
+
+生成符合 \`DocNode\` 接口的JSON格式分层文档结构。
+
+**输入结构：**
+
+您收到的输入有一个 \`projectStructure\` 字段，这是一个树。树中的每个节点代表一个目录，并有一个 \`strategy\` 字段，可以是：
+1.  \`"module-level"\`：对于此目录，您必须生成一个单独的 \`README.md\` 文件，提供高级概述。
+2.  \`"file-level"\`：对于此目录，您必须为其中的每个文件生成单独的文档。
+
+**输出规范（必须遵循此JSON结构）：**
+
+\`\`\`typescript
+interface DocNode {
+  name: string; // 目录或文件名（如 "src"、"utils.ts"、"README.md"）
+  type: "dir" | "file";
+  content?: string; // 文件内容，特别是README.md
+  children?: DocNode[]; // 用于目录
+}
+\`\`\`
+
+**指南：**
+
+1.  **顶级README**：创建一个根 \`README.md\`，总结整个项目。它应包括概述、所有分析文件及其关键指标（如复杂性和可维护性）的表格，以及子目录摘要。
+2.  **模块级文档（strategy: "module-level"）**：
+    - 对于每个标记为 \`"module-level"\` 的目录，创建一个名为 \`README.md\` 的 \`DocNode\`。
+    - 此 \`README.md\` 的 \`content\` 应总结模块的目的、列出它包含的文件，并描述它们的集体功能和依赖关系。不要为此目录内的单个文件创建 \`DocNode\`。
+3.  **文件级文档（strategy: "file-level"）**：
+    - 对于每个标记为 \`"file-level"\` 的目录，遍历其子项。
+    - 为每个源文件创建一个 \`DocNode\`，在 \`content\` 字段中包含其文档。文档应详细，涵盖文件的目的、函数、类和依赖关系。
+4.  **JSON输出**：您的整个输出必须是一个有效的JSON对象，即 \`DocNode\` 的实例（根目录）。不要用markdown反引号或任何其他文本包装它。
+
+分析提供的代码上下文并生成完整、结构化的JSON文档。
+上下文：
+\`\`\`json
+${JSON.stringify(promptContext, null, 2)}
+\`\`\`
+`;
+          userMessage = `
+请为以下项目生成中文文档。
+
+项目文件结构:
+\`\`\`json
+${projectStructureContext}
+\`\`\`
+
+文件分析结果:
+\`\`\`json
+${analysisContext}
+\`\`\`
+
+请严格按照指定的JSON格式返回一个单一的 DocNode 对象。
+`;
+        } else {
+          // 英文模板（保持原有模板）
+          systemMessage = `
 You are an expert software engineer tasked with creating comprehensive, structured documentation for a software project.
 You will receive a JSON object containing the analysis of the project, including a directory tree.
 
@@ -189,21 +254,22 @@ Context:
 ${JSON.stringify(promptContext, null, 2)}
 \`\`\`
 `;
-        userMessage = `
-          请为以下项目生成文档。
+          userMessage = `
+Please generate documentation for the following project.
 
-          项目文件结构:
+Project structure:
           \`\`\`json
           ${projectStructureContext}
           \`\`\`
 
-          文件分析结果:
+File analysis results:
           \`\`\`json
           ${analysisContext}
           \`\`\`
 
-          请严格按照指定的JSON格式返回一个单一的 DocNode 对象。
+Please return a single DocNode object strictly following the specified JSON format.
         `;
+        }
         break;
       default:
         throw new Error(`不支持的任务类型: ${taskType}`);
